@@ -23,7 +23,7 @@ canvas{display:block}
 #ov p{max-width:480px;line-height:1.5;color:var(--dim);margin:6px 0}
 #ov span{margin-top:18px;border:1px solid var(--fg);padding:8px 18px}
 html,body{touch-action:none}#tc{position:fixed;inset:0;display:none;pointer-events:none;z-index:5}#tc b{position:absolute;pointer-events:auto;background:#fff2;border:2px solid #fff6;border-radius:50%;color:#fff;font:bold 12px monospace;text-align:center;display:flex;align-items:center;justify-content:center;user-select:none}
-#jz{left:4%;bottom:12%;width:130px;height:130px}#jn{position:absolute;left:35px;top:35px;width:60px;height:60px;border-radius:50%;background:#fff6;pointer-events:none}#bf{right:5%;bottom:22%;width:92px;height:92px;background:#f224!important}#ba{right:24%;bottom:10%;width:62px;height:62px}#br{right:5%;bottom:8%;width:62px;height:62px}#bk{right:5%;top:28%;width:78px;height:78px;background:#f804!important}#bs{left:5%;bottom:44%;width:58px;height:58px}#vr{display:none;color:var(--ok);border-color:var(--ok)!important}
+#jz{left:4%;bottom:12%;width:130px;height:130px}#jn{position:absolute;left:35px;top:35px;width:60px;height:60px;border-radius:50%;background:#fff6;pointer-events:none}#bf{right:5%;bottom:22%;width:92px;height:92px;background:#f224!important}#ba{right:24%;bottom:10%;width:62px;height:62px}#br{right:5%;bottom:8%;width:62px;height:62px}#bk{right:5%;top:28%;width:78px;height:78px;background:#f804!important}#bs{left:5%;bottom:44%;width:58px;height:58px}#vr{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:30;padding:12px 24px;font:bold 15px "Courier New",monospace;letter-spacing:2px;color:#4dff88;background:#000c;border:2px solid #4dff88;border-radius:8px;cursor:pointer;touch-action:manipulation;-webkit-appearance:none}#vr:active{background:#4dff8855}
 </style></head><body>
 <div id="hud">
 <div id="rec"><i></i>REC &nbsp;BODY CAM 04</div>
@@ -34,7 +34,7 @@ html,body{touch-action:none}#tc{position:fixed;inset:0;display:none;pointer-even
 <div id="ov"><h1>BODY CAM: TEAM DEATHMATCH</h1>
 <p>You vs 5 hostiles. First to 10 kills wins. They respawn. So do you.</p>
 <p>WASD move &middot; Shift sprint &middot; Q/E lean left/right &middot; LMB fire &middot; RMB aim &middot; R reload &middot; Mouse look &middot; K shouts (hostiles panic 10s) &middot; Touch: stick + drag to look</p>
-<p>Headshots do double damage. Recoil kicks hard, so fire in bursts.</p><span id="btn">CLICK TO DEPLOY</span><span id="vr">ENTER VR</span></div>
+<p>Headshots do double damage. Recoil kicks hard, so fire in bursts.</p><span id="btn">CLICK TO DEPLOY</span></div><button id="vr" type="button">ENTER VR</button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
@@ -231,8 +231,11 @@ if(r){var ax=r.axes[2]||0;snapT-=dt;if(Math.abs(ax)>.7&&snapT<=0){ryaw-=Math.sig
 cam.getWorldDirection(fwd);yaw=Math.atan2(-fwd.x,-fwd.z);}
 renderer.xr.addEventListener("sessionstart",function(){if(over)reset();started=true;$("ov").style.display="none";AC=AC||new (window.AudioContext||window.webkitAudioContext)();});
 renderer.xr.addEventListener("sessionend",function(){cam.add(gun);gun.add(HL.g);gun.position.set(.2,-.2,-.4);rig.position.set(0,0,0);rig.rotation.set(0,0,0);ryaw=0;XF=XS=0;firing=false;$("ov").style.display="flex";$("btn").textContent="CLICK TO RESUME";});
-var vr=$("vr");if(navigator.xr&&navigator.xr.isSessionSupported)navigator.xr.isSessionSupported("immersive-vr").then(function(ok){if(ok)vr.style.display="inline-block";}).catch(function(){});
-vr.addEventListener("click",function(e){e.stopPropagation();navigator.xr.requestSession("immersive-vr",{optionalFeatures:["local-floor","bounded-floor"]}).then(function(s){renderer.xr.setSession(s);}).catch(function(){vr.textContent="VR FAILED - open over https";});});
+var vr=$("vr");function vrMsg(t){vr.textContent=t;clearTimeout(vrMsg.t);vrMsg.t=setTimeout(function(){vr.textContent="ENTER VR";},5000);}
+if(navigator.xr&&navigator.xr.isSessionSupported)navigator.xr.isSessionSupported("immersive-vr").then(function(ok){if(!ok)vr.style.opacity=.65;}).catch(function(){});
+vr.addEventListener("click",function(e){e.stopPropagation();e.preventDefault();AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+if(!navigator.xr){vrMsg(isSecureContext?"THIS BROWSER HAS NO WEBXR":"VR NEEDS HTTPS - HOST THE FILE");return;}
+navigator.xr.requestSession("immersive-vr",{optionalFeatures:["local-floor","bounded-floor"]}).then(function(s){return renderer.xr.setSession(s);}).catch(function(err){vrMsg(isSecureContext?"NO VR HEADSET FOUND ("+(err&&err.name||"error")+")":"VR NEEDS HTTPS - HOST THE FILE");});});
 if(matchMedia("(pointer:coarse)").matches){$("tc").style.display="block";var jid=null,lid=null,lx=0,ly=0,fid=null;
 var tl=function(e){return[].slice.call(e.changedTouches)};
 addEventListener("touchstart",function(e){tl(e).forEach(function(t){var id=t.target.id;if(id==="jz"||id==="jn")jid=t.identifier;else if(id==="bf"){firing=true;fid=t.identifier;}else if(id==="ba")adsHeld=!adsHeld;else if(id==="br")startReload();else if(id==="bk")yell();else if(id==="bs")keys.ShiftLeft=!keys.ShiftLeft;else if(lid===null&&started){lid=t.identifier;lx=t.clientX;ly=t.clientY;}});},{passive:false});
